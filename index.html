@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Life To-Do | Master Your Time</title>
+    <meta name="description" content="The ultimate productivity dashboard. Plan, focus, and achieve your goals with Smart Life To-Do.">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Landing Page Specific Styles */
+        :root {
+            --hero-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --hero-bg-light: #ffffff;
+            --hero-bg-dark: #0f172a;
+        }
+
+        body.landing-page {
+            padding: 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .landing-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 5%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+            transition: background var(--transition-smooth), border-color var(--transition-smooth);
+        }
+
+        [data-theme="dark"] .landing-nav {
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .nav-brand i {
+            color: var(--accent-color);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color var(--transition-fast);
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--hero-gradient);
+            color: white;
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--border-radius-lg);
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8rem 5% 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
+            z-index: -1;
+            animation: rotateBg 30s linear infinite;
+        }
+
+        [data-theme="dark"] .hero::before {
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+        }
+
+        @keyframes rotateBg {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hero-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-color);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 5vw, 5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+            margin-bottom: 1.5rem;
+            max-width: 800px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        .text-gradient {
+            background: var(--hero-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+            animation: slideDown 1s ease-out;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            animation: slideDown 1.2s ease-out;
+        }
+
+        .btn-secondary {
+            background: var(--card-bg-color);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--border-radius-lg);
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-fast);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-tertiary);
+            transform: translateY(-2px);
+        }
+
+        /* App Preview Mockup */
+        .app-preview {
+            margin-top: 4rem;
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+            animation: slideDown 1.4s ease-out;
+        }
+
+        [data-theme="dark"] .app-preview {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .app-preview-header {
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        [data-theme="dark"] .app-preview-header {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .preview-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-r { background: #ff5f56; }
+        .dot-y { background: #ffbd2e; }
+        .dot-g { background: #27c93f; }
+
+        .app-preview-body {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+        }
+
+        .mock-card {
+            background: var(--bg-color);
+            border-radius: var(--border-radius-md);
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .mock-line {
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+        }
+
+        .mock-line.short { width: 50%; }
+        .mock-line.long { width: 80%; margin-bottom: 1.5rem; }
+
+        .mock-task {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .mock-task:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .mock-check {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-tertiary);
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .app-preview-body {
+                grid-template-columns: 1fr;
+            }
+            .hero-cta {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body class="landing-page">
+
+    <!-- Navbar -->
+    <nav class="landing-nav">
+        <a href="#" class="nav-brand">
+            <i class="ph-fill ph-check-circle"></i>
+            Smart To-Do
+        </a>
+        <div class="nav-links">
+            <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode">
+                <i class="ph ph-moon"></i>
+            </button>
+            <a href="auth.html" class="nav-link">Log in</a>
+            <a href="auth.html" class="btn-primary">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-badge">✨ V2.0 Now Live</div>
+        <h1>Master Your Time,<br>Reclaim Your <span class="text-gradient">Focus</span></h1>
+        <p>A minimalist, intelligent productivity dashboard designed to eliminate distractions and help you achieve your most important goals.</p>
+        
+        <div class="hero-cta">
+            <a href="auth.html" class="btn-primary">Start for Free</a>
+            <a href="dashboard.html" class="btn-secondary">View Dashboard</a>
+            <a href="nerd-analytics.html" class="btn-secondary">Analytics</a>
+        </div>
+
+        <!-- UI Preview -->
+        <div class="app-preview">
+            <div class="app-preview-header">
+                <div class="preview-dot dot-r"></div>
+                <div class="preview-dot dot-y"></div>
+                <div class="preview-dot dot-g"></div>
+            </div>
+            <div class="app-preview-body">
+                <div class="mock-card">
+                    <div class="mock-line long"></div>
+                    <div class="mock-line"></div>
+                    <div class="mock-line"></div>
+                    <div class="mock-line short"></div>
+                    <div style="margin-top:2rem; height: 100px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;"></div>
+                </div>
+                <div class="mock-card" style="background: var(--card-bg-color);">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">Today's Focus</h3>
+                    <div class="mock-task">
+                        <div class="mock-check" style="background: var(--accent-color); border-color: var(--accent-color);"></div>
+                        <div style="flex: 1;">
+                            <div class="mock-line" style="margin-bottom: 0.25rem;"></div>
+                            <div class="mock-line short" style="height: 4px;"></div>
+                        </div>
+                    </div>
+                    <div class="mock-task">
+                        <div class="mock-check"></div>
+                        <div style="flex: 1;">
+                            <div class="mock-line" style="margin-bottom: 0.25rem;"></div>
+                            <div class="mock-line short" style="height: 4px;"></div>
+                        </div>
+                    </div>
+                    <div class="mock-task">
+                        <div class="mock-check"></div>
+                        <div style="flex: 1;">
+                            <div class="mock-line" style="margin-bottom: 0.25rem;"></div>
+                            <div class="mock-line short" style="height: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Basic script for theme toggle on landing page -->
+    <script>
+        const themeBtn = document.getElementById('theme-toggle');
+        const root = document.documentElement;
+        
+        // Check saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        root.setAttribute('data-theme', savedTheme);
+        updateIcon(savedTheme);
+
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = root.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            root.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcon(newTheme);
+        });
+
+        function updateIcon(theme) {
+            const icon = themeBtn.querySelector('i');
+            if (theme === 'dark') {
+                icon.classList.remove('ph-moon');
+                icon.classList.add('ph-sun');
+            } else {
+                icon.classList.remove('ph-sun');
+                icon.classList.add('ph-moon');
+            }
+        }
+    </script>
+</body>
+</html>

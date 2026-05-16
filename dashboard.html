@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart To-Do | Plan. Focus. Achieve.</title>
+    <meta name="description" content="A minimalistic, modern to-do list application for ultimate productivity.">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons (lightweight and minimal) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>Smart To-Do</h1>
+                <p class="tagline">Plan. Focus. Achieve.</p>
+            </div>
+            <div class="header-right" style="display: flex; align-items: center;">
+                <a href="index.html" style="margin-right: 15px; color: var(--text-primary); text-decoration: none; font-weight: 500;">Home</a>
+                <a href="nerd-analytics.html" style="margin-right: 15px; color: var(--text-primary); text-decoration: none; font-weight: 500;">Analytics</a>
+                <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode">
+                    <i class="ph ph-moon"></i>
+                </button>
+                <div class="profile-icon">
+                    <img src="https://ui-avatars.com/api/?name=User&background=random&color=fff" alt="Profile">
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Productivity Section -->
+            <section class="productivity-section">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="ph ph-check-circle"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-label">Tasks Completed</span>
+                        <span class="stat-value" id="tasks-completed-count">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="ph ph-fire"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-label">Current Streak</span>
+                        <span class="stat-value">3 Days</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="pomodoro-timer-card" style="justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div class="stat-icon" style="background-color: rgba(239, 68, 68, 0.1); color: var(--priority-high);"><i class="ph ph-timer"></i></div>
+                        <div class="stat-details">
+                            <span class="stat-label">Pomodoro</span>
+                            <span class="stat-value" id="pomodoro-time" style="font-variant-numeric: tabular-nums;">25:00</span>
+                        </div>
+                    </div>
+                    <div class="pomodoro-controls" style="display:flex; gap:0.5rem; align-items: center;">
+                        <button id="pomo-toggle" class="icon-btn" aria-label="Start Timer" style="background: var(--priority-high); color: white; border-radius: 50%; padding: 0.4rem; font-size: 1.2rem;">
+                            <i class="ph-fill ph-play" id="pomo-toggle-icon"></i>
+                        </button>
+                        <button id="pomo-reset" class="icon-btn" aria-label="Reset Timer" style="background: transparent; border: 1px solid var(--border-color); border-radius: 50%; padding: 0.4rem; font-size: 1.2rem;">
+                            <i class="ph ph-arrow-counter-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Smart Features UI -->
+            <section class="smart-features-section">
+                <div class="smart-grid">
+                    <div class="smart-card focus-card">
+                        <h2>Today's Focus</h2>
+                        <div class="progress-container">
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="daily-progress"></div>
+                            </div>
+                            <span class="progress-text" id="daily-progress-text">0%</span>
+                        </div>
+                        <ul id="focus-list" class="focus-list">
+                            <!-- Populated dynamically (top 3 priority/due tasks) -->
+                            <li class="empty-focus">Add tasks to set your focus</li>
+                        </ul>
+                    </div>
+                    <div class="smart-card suggested-card">
+                        <h2>Suggested Next Task</h2>
+                        <div id="suggested-task-container" class="suggested-task-container">
+                            <span class="empty-suggested">No suggestions available</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Task Input Section -->
+            <section class="task-input-section">
+                <div class="input-wrapper">
+                    <input type="text" id="task-input" placeholder="Add a new task..." aria-label="New task input">
+                    
+                    <div class="input-controls">
+                        <input type="date" id="task-date" class="date-picker" aria-label="Due date">
+                        <select id="task-priority" class="priority-select" aria-label="Priority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                        <button id="add-task-btn" class="add-btn" aria-label="Add task">
+                            <i class="ph ph-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Task List Section -->
+            <section class="task-list-section">
+                <div class="list-header">
+                    <h2>All Tasks</h2>
+                    <span class="task-count" id="total-task-count">0 tasks</span>
+                </div>
+                
+                <div id="task-list" class="task-list">
+                    <!-- Tasks will be rendered here -->
+                </div>
+                
+                <div id="empty-state" class="empty-state">
+                    <i class="ph ph-clipboard-text"></i>
+                    <p>No tasks yet. Start by adding one.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Skeleton Template (used briefly during initial load) -->
+    <template id="skeleton-template">
+        <div class="task-card skeleton">
+            <div class="skeleton-checkbox"></div>
+            <div class="skeleton-content">
+                <div class="skeleton-text skeleton-title"></div>
+                <div class="skeleton-text skeleton-meta"></div>
+            </div>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
