@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart To-Do // Console</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        bgDark: '#0f172a',
+                        cardDark: '#1e293b',
+                        neonBlue: '#06b6d4',
+                        neonPurple: '#8b5cf6',
+                        successGreen: '#10b981',
+                        warnAmber: '#f59e0b',
+                        subtleText: '#94a3b8',
+                    },
+                    boxShadow: {
+                        'neon-blue': '0 0 10px rgba(6, 182, 212, 0.4)',
+                        'neon-purple': '0 0 10px rgba(139, 92, 246, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+
+        /* Glowing text selection */
+        ::selection {
+            background: rgba(6, 182, 212, 0.3);
+            color: #fff;
+        }
+        
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.2;
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.2em;
+            background-color: #06b6d4;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+            margin-left: 4px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        /* Custom Code Checkbox */
+        .cmd-checkbox {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 1px solid #475569;
+            background-color: #1e293b;
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        
+        .cmd-checkbox:checked {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+        }
+        
+        .cmd-checkbox:checked::after {
+            content: "✓";
+            color: #10b981;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .cmd-checkbox:hover {
+            border-color: #06b6d4;
+        }
+    </style>
+</head>
+<body class="font-mono antialiased overflow-hidden h-screen flex flex-col">
+    <div class="crt-overlay"></div>
+    <div id="root" class="h-full w-full relative z-10 flex flex-col"></div>
+
+    <!-- Application Logic Block -->
+    <script type="text/babel">
+        // We will insert components here via tooling.
+        const { useState, useEffect, useRef, useMemo } = React;
+        
+        // --- Custom Hooks ---
+        function useClock() {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => {
+                const id = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(id);
+            }, []);
+            return time.toLocaleTimeString([], { hour12: false });
+        }
+
+        // --- Mock Data & Initial State ---
+        const initialTasks = [
+            { id: '1', title: 'Initialize neural network integration', deadline: 'Today, 18:00', priority: 'high', estTime: '2h', completed: false },
+            { id: '2', title: 'Refactor core API gateways', deadline: 'Tomorrow', priority: 'medium', estTime: '1h 30m', completed: false },
+            { id: '3', title: 'Deploy microservices to staging', deadline: 'Friday', priority: 'low', estTime: '45m', completed: true },
+        ];
+
+        // --- Priority Colors ---
+        const P_COLORS = {
+            high: 'text-neonPurple border-neonPurple',
+            medium: 'text-neonBlue border-neonBlue',
+            low: 'text-successGreen border-successGreen'
+        };
+
+        // --- Components ---
+
+        // Top Navigation
+        function TopNav({ onToggleFocus }) {
+            const clockText = useClock();
+            return (
+                <nav className="h-14 border-b border-gray-800 bg-bgDark flex items-center justify-between px-6 sticky top-0 z-50">
+                    <div className="flex items-center gap-3">
+                        <i className="ph-fill ph-terminal-window text-neonBlue text-2xl"></i>
+                        <h1 className="text-xl font-bold tracking-widest text-gray-200">
+                            SMART_TODO <span className="text-neonBlue">//</span> CONSOLE
+                        </h1>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2 text-neonPurple font-semibold text-sm">
+                            <i className="ph ph-clock text-lg"></i>
+                            <span className="w-[60px] text-right font-mono">{clockText}</span>
+                        </div>
+                        <button onClick={onToggleFocus} className="px-4 py-1 text-sm border border-gray-600 hover:border-neonBlue hover:text-neonBlue rounded transition-colors" title="Shortcut: /focus">
+                            <i className="ph ph-target mr-2"></i>FOCUS_MODE
+                        </button>
+                        <div className="h-8 w-8 rounded-full bg-gray-800 border-2 border-neonBlue flex items-center justify-center overflow-hidden">
+                            <i className="ph-fill ph-user text-gray-400"></i>
+                        </div>
+                    </div>
+                </nav>
+            );
+        }
+
+        // Left Panel - Command Input
+        function LeftPanel({ onAddTask }) {
+            const [cmd, setCmd] = useState('');
+            const inputRef = useRef(null);
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!cmd.trim()) return;
+                    onAddTask(cmd);
+                    setCmd('');
+                }
+            };
+
+            return (
+                <div className="w-1/4 min-w-[300px] border-r border-gray-800 p-6 flex flex-col gap-6 bg-cardDark bg-opacity-30">
+                    <div>
+                        <h2 className="text-xs uppercase text-subtleText mb-2 font-bold tracking-wider">Console Input</h2>
+                        <div className="relative group">
+                            <div className="absolute left-3 top-3 text-neonBlue font-bold">{'>'}</div>
+                            <textarea 
+                                ref={inputRef}
+                                value={cmd}
+                                onChange={e => setCmd(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Add: Compile assignment by 6PM priority high..."
+                                className="w-full bg-gray-900 border border-gray-700 rounded-md py-3 pl-8 pr-4 text-sm focus:outline-none focus:border-neonBlue focus:shadow-neon-blue transition-all resize-none h-24 text-gray-200 font-mono"
+                            ></textarea>
+                            <span className="absolute bottom-3 right-4 opacity-0 group-focus-within:opacity-100 transition-opacity terminal-cursor"></span>
+                        </div>
+                        <div className="mt-2 text-[11px] text-gray-500 flex justify-between uppercase tracking-wider">
+                            <span>Press Enter to execute</span>
+                            <span className="flex gap-2">
+                                <i className="ph ph-microphone hover:text-neonBlue cursor-pointer transition-colors text-lg" title="Voice Input"></i>
+                                <i className="ph ph-keyboard text-lg"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Shortcut Guide */}
+                    <div className="mt-auto border border-gray-800 rounded-md p-4 bg-bgDark shadow-sm">
+                        <h3 className="text-xs text-neonBlue uppercase mb-3 font-semibold pb-2 border-b border-gray-800 flex items-center gap-2">
+                            <i className="ph ph-terminal text-lg"></i> Valid Arguments
+                        </h3>
+                        <ul className="text-xs space-y-2 text-gray-400 font-mono">
+                            <li className="flex items-center gap-2"><span className="text-neonPurple w-20 inline-block">/focus</span> - Enter Deep Work</li>
+                            <li className="flex items-center gap-2"><span className="text-successGreen w-20 inline-block">priority [x]</span> - high/medium/low</li>
+                            <li className="flex items-center gap-2"><span className="text-neonBlue w-20 inline-block">est [xd]</span> - e.g. est 2h, est 45m</li>
+                        </ul>
+                    </div>
+                </div>
+            );
+        }
+
+        // Center Panel - Task List
+        function CenterPanel({ tasks, onToggleComplete, onDelete }) {
+            const sortedTasks = [...tasks].sort((a, b) => {
+                if(a.completed !== b.completed) return a.completed ? 1 : -1;
+                return 0; // retain chronological order conceptually
+            });
+
+            return (
+                <div className="flex-1 p-6 flex flex-col gap-4 overflow-y-auto relative">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-sm font-bold text-gray-300 uppercase tracking-wider">Active Processes</h2>
+                        <span className="text-[10px] text-neonBlue border border-neonBlue px-2 py-0.5 rounded font-mono">Count: {tasks.length}</span>
+                    </div>
+
+                    {tasks.length === 0 && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-600 border border-dashed border-gray-700 rounded-lg">
+                            <i className="ph ph-code shadow-none text-4xl mb-2"></i>
+                            <p className="text-sm font-mono">No processes active. Awaiting input.</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-3">
+                        {sortedTasks.map(task => (
+                            <div key={task.id} className={`border border-gray-800 bg-bgDark bg-opacity-50 p-4 rounded-md flex items-start gap-4 transition-all duration-300 transform group ${task.completed ? 'opacity-40 grayscale border-gray-800 shadow-none' : 'hover:border-gray-600 hover:-translate-y-1 hover:shadow-lg'}`}>
+                                <div className="pt-0.5">
+                                    <input type="checkbox" checked={task.completed} onChange={() => onToggleComplete(task.id)} className="cmd-checkbox" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className={`font-mono text-sm mb-2 ${task.completed ? 'line-through text-gray-500 font-normal' : 'text-gray-100 font-semibold'}`}>{task.title}</h3>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1 text-[11px] font-mono tracking-wide">
+                                        <span className="flex items-center gap-1 text-gray-500">
+                                            <i className="ph ph-calendar-blank text-sm"></i> {task.deadline || 'Runtime Anytime'}
+                                        </span>
+                                        <span className={`flex items-center gap-1 px-1.5 rounded-sm border ${P_COLORS[task.priority] || P_COLORS.medium} bg-opacity-10 bg-gray-900 uppercase`}>
+                                            <i className="ph-fill ph-circle text-[8px] animate-pulse"></i> {task.priority}
+                                        </span>
+                                        {task.estTime && (
+                                            <span className="flex items-center gap-1 text-warnAmber">
+                                                <i className="ph ph-timer text-sm"></i> {task.estTime}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <button onClick={() => onDelete(task.id)} className={`text-gray-600 hover:text-neonPurple transition-colors p-2 rounded hover:bg-gray-800 ${task.completed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                    <i className="ph ph-trash text-lg"></i>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Right Panel - Productivity
+        function RightPanel({ tasks, onToggleFocus }) {
+            const completedToday = tasks.filter(t => t.completed).length;
+            const focusTime = "2.5h"; // Mock
+            const streak = 14;
+
+            const pendingTasks = tasks.filter(t => !t.completed);
+            const nextBest = pendingTasks.find(t => t.priority === 'high') || pendingTasks[0];
+
+            return (
+                <div className="w-1/4 min-w-[300px] border-l border-gray-800 p-6 flex flex-col gap-6 bg-cardDark bg-opacity-30 overflow-y-auto">
+                    
+                    {/* Gamification / Profile */}
+                    <div className="border border-gray-800 rounded-lg p-4 bg-bgDark relative overflow-hidden shadow-md">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-neonPurple opacity-20 rounded-bl-full blur-[20px]"></div>
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="text-[10px] text-subtleText uppercase tracking-[0.2em] font-bold">Operator Level</span>
+                            <span className="text-neonPurple font-bold text-[10px] bg-neonPurple bg-opacity-10 border border-neonPurple border-opacity-30 px-2 py-0.5 rounded tracking-wide font-mono">LVL 5</span>
+                        </div>
+                        <h3 className="text-md font-bold text-gray-200">Deep Worker</h3>
+                        
+                        <div className="mt-4">
+                            <div className="flex justify-between text-[10px] text-gray-400 mb-1.5 font-mono uppercase">
+                                <span>XP progress</span>
+                                <span className="text-neonBlue font-semibold">450 / 1000</span>
+                            </div>
+                            <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                                <div className="h-full bg-neonPurple w-[45%] shadow-[0_0_8px_rgba(139,92,246,0.8)]"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-2">
+                        <div className="border border-gray-800 bg-bgDark p-4 rounded-lg text-center flex flex-col items-center justify-center relative group overflow-hidden">
+                            <div className="absolute inset-0 bg-successGreen opacity-0 group-hover:opacity-5 transition-opacity"></div>
+                            <i className="ph-fill ph-check-circle text-successGreen text-2xl mb-1 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]"></i>
+                            <span className="text-3xl font-bold text-gray-100 font-mono mt-1">{completedToday}</span>
+                            <span className="text-[9px] text-gray-500 uppercase tracking-widest mt-1">Completed</span>
+                        </div>
+                        <div className="border border-gray-800 bg-bgDark p-4 rounded-lg text-center flex flex-col items-center justify-center relative group overflow-hidden">
+                            <div className="absolute inset-0 bg-warnAmber opacity-0 group-hover:opacity-5 transition-opacity"></div>
+                            <i className="ph-fill ph-fire text-warnAmber text-2xl mb-1 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]"></i>
+                            <span className="text-3xl font-bold text-gray-100 font-mono mt-1">{streak}</span>
+                            <span className="text-[9px] text-gray-500 uppercase tracking-widest mt-1">Day Streak</span>
+                        </div>
+                    </div>
+
+                    {/* Next Best Component */}
+                    {nextBest ? (
+                        <div className="border border-neonBlue rounded-lg p-4 bg-[#0a192f] mt-2 relative shadow-neon-blue transition-all">
+                            <div className="absolute -top-2 left-4 bg-bgDark px-2 py-0.5 text-[9px] uppercase tracking-widest font-bold text-neonBlue border border-neonBlue rounded shadow-[0_0_5px_rgba(6,182,212,0.4)]">AI SUGGESTION</div>
+                            <div className="mt-2 text-sm text-gray-100 font-mono leading-relaxed">
+                                <span className="text-neonBlue font-bold mr-2 text-md">{'>>'}</span> 
+                                {nextBest.title}
+                            </div>
+                            <button onClick={onToggleFocus} className="mt-4 w-full py-1.5 bg-neonBlue flex items-center justify-center gap-2 bg-opacity-10 text-neonBlue hover:bg-neonBlue hover:text-bgDark border border-neonBlue rounded text-xs font-bold transition-all uppercase tracking-wider">
+                                <i className="ph-fill ph-play focus:outline-none"></i> Execute Now
+                            </button>
+                        </div>
+                    ) : (
+                         <div className="border border-gray-800 rounded-lg p-4 bg-bgDark mt-2 text-center text-sm text-gray-500 italic font-mono">
+                            No tasks in queue.
+                         </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Focus Mode Overlay
+        function FocusMode({ task, onExit }) {
+            const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 min
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setTimeLeft(prev => {
+                        if(prev <= 1) { clearInterval(interval); return 0; }
+                        return prev - 1;
+                    });
+                }, 1000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const formatTime = (secs) => {
+                const m = Math.floor(secs / 60).toString().padStart(2, '0');
+                const s = (secs % 60).toString().padStart(2, '0');
+                return `${m}:${s}`;
+            };
+
+            return (
+                <div className="fixed inset-0 z-[100] bg-bgDark flex flex-col items-center justify-center p-8 animate-[fadeIn_0.5s_ease-out]">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-bgDark to-bgDark pointer-events-none"></div>
+                    
+                    <button onClick={onExit} className="absolute top-8 right-8 text-gray-500 hover:text-neonBlue transition-colors flex items-center gap-2 px-3 py-1 border border-gray-800 hover:border-neonBlue rounded group z-10">
+                        <i className="ph ph-x text-lg"></i> <span className="text-xs font-mono tracking-widest text-gray-400 group-hover:text-neonBlue transition-colors">ESC</span>
+                    </button>
+                    
+                    <div className="flex flex-col items-center text-center max-w-3xl w-full z-10">
+                        <div className="text-neonPurple w-full text-xs uppercase tracking-[0.4em] font-bold mb-10 flex items-center gap-4">
+                            <span className="flex-1 h-px bg-gradient-to-r from-transparent to-neonPurple opacity-50"></span>
+                            FOCUS_PROTOCOL_ENGAGED
+                            <span className="flex-1 h-px bg-gradient-to-l from-transparent to-neonPurple opacity-50"></span>
+                        </div>
+                        
+                        <h2 className="text-2xl md:text-3xl font-mono text-gray-300 mb-16 h-20 flex items-center justify-center">
+                            {task ? `> Execute: ${task.title}` : '> Empty Focus Session'}
+                            <span className="terminal-cursor"></span>
+                        </h2>
+                        
+                        <div className="text-[6rem] md:text-[10rem] font-bold text-neonBlue leading-none tracking-tight drop-shadow-[0_0_25px_rgba(6,182,212,0.4)] font-mono mb-16 select-none shadow-neonBlue">
+                            {formatTime(timeLeft)}
+                        </div>
+                        
+                        <div className="flex gap-4">
+                            <button className="px-6 py-2 border border-gray-600 rounded text-gray-400 text-xs font-mono uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all">Pause</button>
+                            <button className="px-6 py-2 border border-neonPurple bg-neonPurple bg-opacity-10 rounded text-neonPurple text-xs font-bold uppercase tracking-widest hover:bg-neonPurple hover:text-bgDark transition-all drop-shadow-[0_0_5px_rgba(139,92,246,0.3)]">Complete Task</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App State
+        function App() {
+            const [tasks, setTasks] = useState(initialTasks);
+            const [isFocusMode, setIsFocusMode] = useState(false);
+
+            // Simple parser for command input
+            const handleAddTask = (cmdStr) => {
+                let title = cmdStr;
+                
+                // Remove basic command prefix if present
+                if (title.toLowerCase().startsWith('add:')) {
+                    title = title.substring(4).trim();
+                }
+
+                if (title.toLowerCase() === '/focus') {
+                    setIsFocusMode(true);
+                    return;
+                }
+
+                // Parse priority
+                let priority = 'medium';
+                if (title.toLowerCase().includes('priority high')) { priority = 'high'; title = title.replace(/priority high/i, ''); }
+                if (title.toLowerCase().includes('priority low')) { priority = 'low'; title = title.replace(/priority low/i, ''); }
+
+                // Parse estimate
+                let estTime = '';
+                const estMatch = title.match(/est\s+(\d+[hm])/i);
+                if (estMatch) {
+                    estTime = estMatch[1];
+                    title = title.replace(estMatch[0], '');
+                }
+
+                const newTask = {
+                    id: Date.now().toString(),
+                    title: title.trim() || 'Untitled Process',
+                    deadline: 'Pending Assignment', // Mock generic
+                    priority,
+                    estTime,
+                    completed: false
+                };
+
+                setTasks(prev => [newTask, ...prev]);
+            };
+
+            const toggleComplete = (id) => {
+                setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+            };
+
+            const deleteTask = (id) => {
+                setTasks(prev => prev.filter(t => t.id !== id));
+            };
+
+            // Global Keyboard listener for Focus Mode exit
+            useEffect(() => {
+                const handleKey = (e) => {
+                    if (e.key === 'Escape' && isFocusMode) {
+                        setIsFocusMode(false);
+                    }
+                };
+                window.addEventListener('keydown', handleKey);
+                return () => window.removeEventListener('keydown', handleKey);
+            }, [isFocusMode]);
+
+            return (
+                <>
+                    <TopNav onToggleFocus={() => setIsFocusMode(true)} />
+                    <div className="flex-1 flex overflow-hidden">
+                        <LeftPanel onAddTask={handleAddTask} />
+                        <CenterPanel tasks={tasks} onToggleComplete={toggleComplete} onDelete={deleteTask} />
+                        <RightPanel tasks={tasks} onToggleFocus={() => setIsFocusMode(true)} />
+                    </div>
+
+                    {isFocusMode && <FocusMode task={tasks.find(t => !t.completed && t.priority === 'high') || tasks.find(t=>!t.completed)} onExit={() => setIsFocusMode(false)} />}
+                </>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

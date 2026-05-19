@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart To-Do // Control Center</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        bgDark: '#0b1120',
+                        cardDark: '#1e293b',
+                        panelDark: '#151e2e',
+                        neonBlue: '#0ea5e9',
+                        neonCyan: '#06b6d4',
+                        neonPurple: '#8b5cf6',
+                        successGreen: '#10b981',
+                        warnAmber: '#f59e0b',
+                        alertRed: '#ef4444',
+                        subtleText: '#64748b',
+                        gridLine: '#1e293b'
+                    },
+                    boxShadow: {
+                        'neon-blue': '0 0 15px rgba(14, 165, 233, 0.3)',
+                        'neon-cyan': '0 0 15px rgba(6, 182, 212, 0.3)',
+                        'neon-purple': '0 0 15px rgba(139, 92, 246, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0b1120;
+            color: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+
+        ::selection {
+            background: rgba(14, 165, 233, 0.3);
+            color: #fff;
+        }
+
+        .terminal-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, #1e293b 1px, transparent 1px),
+                linear-gradient(to bottom, #1e293b 1px, transparent 1px);
+        }
+        
+        .panel {
+            background-color: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(8px);
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+        }
+        
+        .panel:hover {
+            border-color: #475569;
+        }
+        
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Standard check */
+        .cyber-checkbox {
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid #475569;
+            background-color: transparent;
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        
+        .cyber-checkbox:checked {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+        }
+        .cyber-checkbox:checked::after {
+            content: "✓";
+            color: #10b981;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .cyber-checkbox:hover { border-color: #0ea5e9; }
+    </style>
+</head>
+<body class="font-mono antialiased overflow-hidden h-screen flex flex-col terminal-grid relative">
+    <div id="root" class="h-full w-full relative z-10 flex flex-col p-4 gap-4 overflow-y-auto"></div>
+
+    <!-- MAIN DASHBOARD LOGIC -->
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+        
+        // --- Dynamic Tasks State will be handled in Dashboard Component ---
+
+        // --- Utils ---
+        function useClock() {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => { const id = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(id); }, []);
+            return time.toLocaleTimeString([], { hour12: false });
+        }
+
+        // --- COMPONENTS ---
+
+        function TopNav() {
+            const time = useClock();
+            return (
+                <div className="flex flex-col md:flex-row justify-between items-center bg-panelDark border border-gray-800 rounded-lg p-4 shadow-sm mb-4 gap-4">
+                    <div className="flex items-center gap-3">
+                        <i className="ph-fill ph-cpu text-neonBlue text-2xl"></i>
+                        <h1 className="text-xl font-bold uppercase tracking-widest text-gray-200 mr-4">
+                            CMD_CENTER <span className="text-subtleText font-normal text-sm">v2.1</span>
+                        </h1>
+                        <div className="hidden md:flex gap-4 text-xs font-bold tracking-widest uppercase border-l border-gray-700 pl-4">
+                            <a href="index.html" className="text-gray-400 hover:text-neonCyan transition-colors">Home</a>
+                            <a href="dashboard.html" className="text-gray-400 hover:text-neonPurple transition-colors">Tasks</a>
+                        </div>
+                    </div>
+                    
+                    {/* Command Palette Mock Input */}
+                    <div className="flex-1 max-w-xl relative w-full hidden md:block">
+                        <i className="ph ph-terminal-window absolute left-3 top-2.5 text-gray-500"></i>
+                        <input className="w-full bg-bgDark border border-gray-700 rounded-md py-2 pl-10 pr-4 text-sm focus:border-neonBlue focus:shadow-neon-blue outline-none transition-all placeholder-gray-600 font-mono" placeholder="> Enter command or add task (press Enter)..." />
+                        <div className="absolute right-3 top-2 text-[10px] bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded text-gray-400">Ctrl+K</div>
+                    </div>
+
+                    <div className="flex gap-4 items-center">
+                        <select className="bg-bgDark border border-gray-700 rounded text-xs px-2 py-1 outline-none focus:border-neonPurple text-gray-300 w-28">
+                            <option value="normal">⚡ Normal Energy</option>
+                            <option value="high">🚀 High Energy</option>
+                            <option value="low">🔋 Low Energy</option>
+                        </select>
+                        <div className="text-neonCyan font-bold tracking-widest px-4 border-l border-gray-700 min-w-[120px] text-right">{time}</div>
+                    </div>
+                </div>
+            );
+        }
+
+        function CommandCenter({ tasks }) {
+            const top3 = tasks.filter(t => t.status === 'pending' && t.priority === 'high').slice(0, 3);
+            if (top3.length < 3) {
+                top3.push(...tasks.filter(t => t.status === 'pending' && t.priority === 'medium').slice(0, 3 - top3.length));
+            }
+            const active = top3[0];
+
+            return (
+                <div className="panel p-5 col-span-12 lg:col-span-6 flex flex-col gap-4 relative overflow-hidden h-full">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 blur-[40px] pointer-events-none">
+                        <div className="w-48 h-48 bg-neonBlue rounded-full"></div>
+                    </div>
+                    <div className="flex justify-between items-end border-b border-gray-800 pb-2">
+                        <h2 className="text-sm font-bold text-gray-300 uppercase tracking-widest">Today's Focus</h2>
+                        <span className="text-[10px] text-neonBlue bg-neonBlue bg-opacity-10 px-2 py-0.5 rounded border border-neonBlue">SYSTEM READY</span>
+                    </div>
+
+                    {/* Active Task */}
+                    <div className="bg-bgDark border border-neonBlue rounded flex flex-col p-5 relative shadow-[0_0_15px_rgba(14,165,233,0.15)] mt-2">
+                        <div className="absolute -top-2.5 left-4 text-[10px] bg-bgDark px-2 text-neonBlue font-bold border border-neonBlue rounded uppercase tracking-wider">Active Execution</div>
+                        <div className="flex justify-between items-center mt-2 mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="text-neonCyan text-xl font-bold animate-pulse">{'>>'}</div>
+                                <h3 className="text-lg font-bold text-gray-100 font-mono tracking-tight">{active ? active.title : 'Awaiting Assignment'}</h3>
+                            </div>
+                            <div className="text-successGreen font-bold text-[10px] uppercase border border-successGreen px-2 py-0.5 rounded bg-successGreen bg-opacity-5">IN PROGRESS</div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button className="flex-1 py-1.5 bg-neonBlue bg-opacity-10 text-neonBlue border border-neonBlue rounded text-xs font-bold uppercase transition-all hover:bg-neonBlue hover:text-bgDark tracking-widest">Complete</button>
+                            <button className="px-4 py-1.5 border border-gray-600 rounded text-gray-400 text-xs font-bold uppercase hover:bg-gray-800 transition-all"><i className="ph ph-pause"></i></button>
+                        </div>
+                    </div>
+
+                    {/* Next Queue */}
+                    <div className="grid grid-cols-2 gap-3 mt-auto">
+                        {top3.slice(1).map((task, i) => (
+                            <div key={task.id} className="bg-bgDark border border-gray-800 p-3 rounded flex flex-col gap-1 hover:border-gray-600 transition-colors cursor-pointer group">
+                                <span className="text-[10px] text-subtleText uppercase tracking-wider">Queue #{i+2}</span>
+                                <span className="text-sm text-gray-300 truncate font-mono group-hover:text-neonBlue transition-colors">{task.title}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function TimeAndFocus({ pomoSeconds }) {
+            const hours = Math.floor(pomoSeconds / 3600);
+            const minutes = Math.floor((pomoSeconds % 3600) / 60);
+            
+            const totalText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            
+            // Goal: 2 hours (7200 seconds)
+            const goal = 7200;
+            const percentage = Math.min(100, Math.round((pomoSeconds / goal) * 100));
+            const offset = 402 - (402 * (percentage / 100));
+
+            return (
+                <div className="panel p-5 col-span-12 md:col-span-6 lg:col-span-3 flex flex-col items-center justify-center relative">
+                    <div className="absolute top-4 left-4 text-[10px] font-bold text-gray-400 tracking-widest uppercase border-b border-gray-700 pb-1">Pomodoro Focus</div>
+                    
+                    <div className="relative flex items-center justify-center w-36 h-36 mt-8 shadow-neon-purple rounded-full">
+                        <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]">
+                            <circle cx="72" cy="72" r="64" className="stroke-gray-800 fill-none" strokeWidth="6"></circle>
+                            <circle cx="72" cy="72" r="64" className="stroke-neonPurple fill-none stroke-[6px] transition-all duration-1000" strokeDasharray="402" strokeDashoffset={offset} strokeLinecap="round"></circle>
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
+                            <span className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Time Spent</span>
+                            <span className="text-2xl font-bold text-gray-100 tracking-tighter">{totalText}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="w-full grid grid-cols-2 gap-2 mt-8">
+                        <div className="bg-bgDark border border-gray-800 rounded p-2 text-center hover:border-gray-600 transition-colors cursor-pointer">
+                            <div className="text-[10px] text-subtleText uppercase tracking-wider">Sessions</div>
+                            <div className="text-lg font-bold text-neonCyan font-mono mt-0.5">{Math.floor(pomoSeconds / 1500)}</div>
+                        </div>
+                        <div className="bg-bgDark border border-gray-800 rounded p-2 text-center hover:border-gray-600 transition-colors cursor-pointer">
+                            <div className="text-[10px] text-subtleText uppercase tracking-wider">Goal Focus</div>
+                            <div className="text-lg font-bold text-successGreen font-mono mt-0.5">{percentage}%</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function Gamification() {
+            const [history, setHistory] = useState({});
+
+            useEffect(() => {
+                const load = () => {
+                    setHistory(JSON.parse(localStorage.getItem('smart-todo-daily-history') || '{}'));
+                };
+                load();
+                window.addEventListener('storage', load);
+                return () => window.removeEventListener('storage', load);
+            }, []);
+
+            // Calculate total XP dynamically
+            let totalTasks = 0;
+            let totalPomoSeconds = 0;
+            Object.values(history).forEach(day => {
+                totalTasks += (day.tasks || 0);
+                totalPomoSeconds += (day.pomo || 0);
+            });
+            
+            // 50 XP per completed task, 10 XP per minute of pomodoro (60 secs)
+            const totalXP = (totalTasks * 50) + Math.floor(totalPomoSeconds / 60) * 10;
+            
+            // Progressive slow curve: wait, Level = floor(sqrt(totalXP / 100)) + 1
+            // At level 100: requires 100^2 * 100 = 1,000,000 XP
+            let currentLevel = Math.floor(Math.sqrt(totalXP / 100)) + 1;
+            if (currentLevel > 100) currentLevel = 100;
+            
+            const currentLevelStartXP = 100 * Math.pow(currentLevel - 1, 2);
+            let nextLevelStartXP = 100 * Math.pow(currentLevel, 2);
+            
+            if (currentLevel === 100) {
+                nextLevelStartXP = currentLevelStartXP; // Cap at max
+            }
+            
+            const xpIntoLevel = totalXP - currentLevelStartXP;
+            const xpNeededForLevel = nextLevelStartXP - currentLevelStartXP;
+            
+            const progressPercent = currentLevel === 100 ? 100 : Math.min(100, Math.max(0, (xpIntoLevel / xpNeededForLevel) * 100));
+
+            // Dynamic titles
+            let title = "Novice Worker";
+            if (currentLevel >= 10) title = "Focused Operator";
+            if (currentLevel >= 30) title = "Deep Worker";
+            if (currentLevel >= 60) title = "Flow Master";
+            if (currentLevel >= 90) title = "Productivity God";
+
+            return (
+                <div className="panel p-5 col-span-12 md:col-span-6 lg:col-span-3 flex flex-col gap-4">
+                    <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <h2 className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Character Level</h2>
+                        <i className="ph-fill ph-shield-check text-neonPurple text-xl drop-shadow-[0_0_5px_rgba(139,92,246,0.6)] animate-pulse-slow"></i>
+                    </div>
+                    
+                    <div className="mt-2">
+                        <div className="flex justify-between items-baseline mb-2">
+                            <span className="text-xl font-bold text-gray-100 tracking-tight">Level {currentLevel}</span>
+                            <span className="text-[10px] text-bgDark bg-neonPurple font-bold uppercase tracking-widest px-2 py-0.5 rounded drop-shadow-[0_0_5px_rgba(139,92,246,0.3)]">{title}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 mb-1.5 flex justify-between font-mono">
+                            <span>{totalXP.toLocaleString()} XP</span>
+                            <span className="text-neonPurple">{currentLevel === 100 ? 'MAX' : nextLevelStartXP.toLocaleString() + ' XP'}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden border border-gray-700 relative">
+                            <div className="h-full bg-neonPurple shadow-[0_0_10px_rgba(139,92,246,0.8)] transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="mt-auto">
+                        <div className="text-[10px] text-subtleText uppercase tracking-widest mb-2 border-b border-gray-800 pb-1">Milestones</div>
+                        <div className="flex gap-2">
+                            {[1, 2, 3, 4].map(b => (
+                                <div key={b} title={`Unlocks at Level ${b * 25}`} className={`flex-1 border rounded py-2.5 flex justify-center cursor-pointer transition-all shadow-sm ${currentLevel >= b * 25 ? 'bg-neonCyan bg-opacity-20 border-neonCyan text-neonCyan shadow-[0_0_8px_rgba(6,182,212,0.4)]' : 'bg-bgDark border-gray-800 text-gray-600 opacity-80 hover:opacity-100 hover:border-gray-600'}`}>
+                                    <i className={`ph-fill ${['ph-lightning', 'ph-fire', 'ph-star', 'ph-sword'][b - 1]} text-lg`}></i>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function TaskOverview({ tasks }) {
+            const total = tasks.length;
+            const done = tasks.filter(t => t.status === 'completed').length;
+            const overdue = tasks.filter(t => t.status === 'overdue').length;
+
+            return (
+                <div className="panel p-5 col-span-12 lg:col-span-4 flex flex-col h-[400px]">
+                    <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
+                        <h2 className="text-sm font-bold text-gray-300 uppercase tracking-widest">Master Log</h2>
+                        <div className="flex gap-2">
+                            <span className="text-[9px] font-bold bg-bgDark border border-neonBlue text-neonBlue px-2 py-0.5 rounded cursor-pointer transition-colors shadow-neon-blue">ALL</span>
+                            <span className="text-[9px] font-bold bg-bgDark border border-gray-700 px-2 py-0.5 rounded cursor-pointer hover:border-alertRed transition-colors hover:text-alertRed">OVERDUE</span>
+                        </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                        <div className="bg-bgDark border border-gray-800 p-2 rounded text-center"><div className="text-lg font-bold font-mono">{total}</div><div className="text-[8px] uppercase text-subtleText">Total</div></div>
+                        <div className="bg-bgDark border border-gray-800 p-2 rounded text-center"><div className="text-lg font-bold font-mono text-successGreen">{done}</div><div className="text-[8px] uppercase text-subtleText">Done</div></div>
+                        <div className="bg-bgDark border border-alertRed bg-opacity-5 p-2 rounded text-center"><div className="text-lg font-bold font-mono text-alertRed">{overdue}</div><div className="text-[8px] uppercase text-subtleText">Overdue</div></div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-2">
+                        {tasks.map(task => (
+                            <div key={task.id} className={`flex items-start gap-3 p-3 rounded border ${task.status === 'overdue' ? 'border-alertRed bg-alertRed bg-opacity-5' : 'border-gray-800 bg-bgDark'} hover:border-gray-600 transition-colors group cursor-pointer`}>
+                                <input type="checkbox" className="cyber-checkbox mt-0.5 flex-shrink-0" defaultChecked={task.status==='completed'} />
+                                <div className="flex-1 w-full overflow-hidden">
+                                    <div className={`text-[13px] truncate font-mono ${task.status==='completed' ? 'text-gray-500 line-through' : 'text-gray-200 group-hover:text-neonBlue transition-colors'}`}>{task.title}</div>
+                                    <div className="flex gap-3 text-[9px] mt-1.5 font-mono uppercase tracking-wider">
+                                        <span className={`${task.priority==='high' ? 'text-neonPurple font-bold' : 'text-neonBlue'}`}>{task.priority} Prio</span>
+                                        <span className={task.status==='overdue' ? 'text-alertRed font-bold animate-pulse' : 'text-subtleText'}>{task.time}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function ScheduleTimeline({ tasks }) {
+            const pendingTasks = tasks.filter(t => t.status !== 'completed').slice(0, 5);
+            
+            // Generate pseudo timeline blocks from actual tasks since app doesn't have exact times
+            const blocks = pendingTasks.length > 0 ? pendingTasks.map((t, i) => {
+                const hour = 9 + (i * 2); // Spread them out every 2 hours starting at 9 AM
+                return {
+                    time: `${hour < 10 ? '0'+hour : hour}:00`,
+                    task: t.title,
+                    type: t.priority === 'high' ? 'deep' : (t.priority === 'medium' ? 'standard' : 'meeting')
+                };
+            }) : [
+                { time: '09:00', task: 'No tasks scheduled', type: 'rest' }
+            ];
+
+            return (
+                <div className="panel p-5 col-span-12 lg:col-span-4 h-[400px] flex flex-col">
+                    <div className="flex justify-between items-center border-b border-gray-800 pb-2 mb-4">
+                        <h2 className="text-sm font-bold text-gray-300 uppercase tracking-widest">Timeline</h2>
+                        <i className="ph ph-calendar-blank text-subtleText"></i>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto relative border-l border-gray-800 ml-4 space-y-4 pb-4 px-2">
+                        {blocks.map((b, i) => (
+                            <div key={i} className="relative pl-6 group">
+                                {/* Timeline Node */}
+                                <div className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded border border-bgDark ${b.type === 'deep' ? 'bg-neonPurple shadow-neon-purple' : b.type==='meeting' ? 'bg-neonCyan outline outline-1 outline-neonCyan outline-offset-1' : 'bg-gray-600'}`}></div>
+                                
+                                <div className="text-[10px] text-neonBlue font-bold font-mono mb-1">{b.time}</div>
+                                <div className="bg-bgDark border border-gray-800 rounded p-2.5 text-xs text-gray-200 cursor-move hover:border-gray-500 transition-colors shadow-sm flex items-center justify-between">
+                                    <span className="font-mono truncate">{b.task}</span>
+                                    <i className="ph ph-dots-six-vertical text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function Analytics() {
+            const [history, setHistory] = useState({});
+
+            useEffect(() => {
+                const load = () => {
+                    setHistory(JSON.parse(localStorage.getItem('smart-todo-daily-history') || '{}'));
+                };
+                load();
+                window.addEventListener('storage', load);
+                return () => window.removeEventListener('storage', load);
+            }, []);
+
+            // Github-style heatmap tracking actual task completion & pomodoro time
+            const renderHeatmap = () => {
+                const cells = [];
+                const today = new Date();
+                
+                for(let i=83; i>=0; i--) {
+                    const d = new Date(today);
+                    d.setDate(today.getDate() - i);
+                    const dateStr = d.toISOString().split('T')[0];
+                    const dayData = history[dateStr] || { tasks: 0, pomo: 0 };
+                    
+                    // Score formula: 1 task = 5 points, 1 min pomo = 1 point
+                    const score = (dayData.tasks * 5) + Math.floor(dayData.pomo / 60);
+                    
+                    let bg = 'bg-gray-800';
+                    if (score > 60) bg = 'bg-blue-900 opacity-100 shadow-[0_0_8px_rgba(30,58,138,0.8)] border border-blue-700'; // Darkest blue
+                    else if (score > 30) bg = 'bg-blue-700 opacity-90'; // Dark blue
+                    else if (score > 10) bg = 'bg-blue-500 opacity-80'; // Mid blue
+                    else if (score > 0) bg = 'bg-blue-400 opacity-70';  // Light blue
+                    
+                    cells.push(
+                        <div 
+                            key={i} 
+                            title={`${dateStr}: ${dayData.tasks} tasks, ${Math.floor(dayData.pomo/60)}m in pomodoro`} 
+                            className={`w-3 h-3 rounded-sm ${bg} transition-all cursor-pointer hover:border hover:border-white hover:scale-125 hover:z-10 relative`}>
+                        </div>
+                    );
+                }
+                return cells;
+            }
+
+            return (
+                <div className="panel p-5 col-span-12 lg:col-span-4 flex flex-col justify-between h-[400px]">
+                    <div>
+                        <div className="flex justify-between items-center border-b border-gray-800 pb-2 mb-4">
+                            <h2 className="text-sm font-bold text-gray-300 uppercase tracking-widest">Activity Matrix</h2>
+                            <i className="ph ph-chart-bar text-subtleText"></i>
+                        </div>
+                        <div className="flex justify-center bg-bgDark border border-gray-800 rounded p-3">
+                            <div className="grid grid-cols-12 gap-1.5 w-max">
+                                {renderHeatmap()}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 border-t border-gray-800 pt-4 flex flex-col flex-1 pb-2">
+                        <div className="text-[10px] text-subtleText font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <i className="ph-fill ph-brain text-neonPurple"></i> System Insight
+                        </div>
+                        <div className="bg-bgDark border-l-2 border-neonPurple p-4 rounded-r shadow-sm flex-1 flex items-center">
+                            <p className="text-xs text-gray-300 font-mono leading-relaxed">
+                                <span className="text-neonPurple font-bold">{'>>'}</span> You maintain peak efficiency at <span className="text-white font-bold tracking-wider">19:00</span>. Attempting complex architectural tasks during this window is highly advised.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function Dashboard() {
+            const [tasks, setTasks] = useState([]);
+            const [pomoSeconds, setPomoSeconds] = useState(0);
+            const [dismissedAlert, setDismissedAlert] = useState(false);
+
+            useEffect(() => {
+                const loadData = () => {
+                    const stored = localStorage.getItem('smart-todo-tasks');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        
+                        const mappedTasks = parsed.map(t => {
+                            let status = t.completed ? 'completed' : 'pending';
+                            if (!t.completed && t.dueDate && t.dueDate < todayStr) {
+                                status = 'overdue';
+                            }
+                            return {
+                                id: t.id,
+                                title: t.title,
+                                priority: t.priority,
+                                status: status,
+                                time: t.dueDate ? new Date(t.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Backlog'
+                            };
+                        });
+                        setTasks(mappedTasks);
+                    }
+                    setPomoSeconds(parseInt(localStorage.getItem('smart-todo-pomodoro-seconds') || '0'));
+                };
+
+                loadData();
+                
+                // Set up polling or listen to storage events if another tab modifies it
+                window.addEventListener('storage', loadData);
+                return () => window.removeEventListener('storage', loadData);
+            }, []);
+
+            const overdueCount = tasks.filter(t => t.status === 'overdue').length;
+            const showAlert = overdueCount > 0 && !dismissedAlert;
+
+            return (
+                <div className="max-w-[1400px] mx-auto w-full flex flex-col pb-10">
+                    <TopNav />
+                    
+                    {showAlert && (
+                        <div className="mt-2 mb-4 bg-alertRed bg-opacity-10 border border-alertRed rounded p-3 flex justify-between items-center shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                            <div className="flex items-center gap-3 text-alertRed font-mono text-xs">
+                                <i className="ph-fill ph-warning"></i>
+                                <span><strong className="tracking-widest uppercase">Alert:</strong> You have {overdueCount} overdue task{overdueCount !== 1 ? 's' : ''} in the master log.</span>
+                            </div>
+                            <button onClick={() => setDismissedAlert(true)} className="text-[10px] font-bold text-gray-300 bg-bgDark hover:bg-gray-800 border border-gray-700 px-3 py-1 rounded transition-colors uppercase">Dismiss</button>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-12 gap-4">
+                        {/* Top Row: Focus & Command */}
+                        <CommandCenter tasks={tasks} />
+                        <TimeAndFocus pomoSeconds={pomoSeconds} />
+                        <Gamification />
+                        
+                        {/* Bottom Row: Logs & Analytics */}
+                        <TaskOverview tasks={tasks} />
+                        <ScheduleTimeline tasks={tasks} />
+                        <Analytics />
+                    </div>
+                </div>
+            )
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Dashboard />);
+    </script>
+</body>
+</html>

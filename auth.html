@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart To-Do | Authentication</title>
+    <meta name="description" content="Log in or sign up to Smart Life To-Do">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-body">
+    <button id="theme-toggle" class="icon-btn auth-theme-toggle" aria-label="Toggle dark mode">
+        <i class="ph ph-moon"></i>
+    </button>
+
+    <main class="auth-container">
+        <div class="auth-header">
+            <h1>Smart To-Do</h1>
+            <p class="tagline">Stay organized, stay ahead</p>
+        </div>
+
+        <div class="auth-card">
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active" novalidate>
+                <div class="form-group">
+                    <label for="login-email" class="sr-only">Email</label>
+                    <input type="email" id="login-email" placeholder="Email address" required>
+                    <span class="error-msg" id="login-email-error"></span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password" class="sr-only">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="login-password" placeholder="Password" required>
+                        <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                            <i class="ph ph-eye"></i>
+                        </button>
+                    </div>
+                    <span class="error-msg" id="login-password-error"></span>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="remember-me" class="custom-checkbox custom-checkbox-sm">
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="auth-link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="auth-btn" id="login-btn" disabled>
+                    <span class="btn-text">Log In</span>
+                    <i class="ph ph-spinner-gap spinner"></i>
+                </button>
+            </form>
+
+            <!-- Sign Up Form -->
+            <form id="signup-form" class="auth-form" novalidate>
+                <div class="form-group">
+                    <label for="signup-name" class="sr-only">Full Name</label>
+                    <input type="text" id="signup-name" placeholder="Full Name" required>
+                    <span class="error-msg" id="signup-name-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-email" class="sr-only">Email</label>
+                    <input type="email" id="signup-email" placeholder="Email address" required>
+                    <span class="error-msg" id="signup-email-error"></span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signup-password" class="sr-only">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="signup-password" placeholder="Password" required>
+                        <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                            <i class="ph ph-eye"></i>
+                        </button>
+                    </div>
+                    <span class="error-msg" id="signup-password-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="signup-confirm" class="sr-only">Confirm Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="signup-confirm" placeholder="Confirm Password" required>
+                        <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                            <i class="ph ph-eye"></i>
+                        </button>
+                    </div>
+                    <span class="error-msg" id="signup-confirm-error"></span>
+                </div>
+
+                <button type="submit" class="auth-btn" id="signup-btn" disabled>
+                    <span class="btn-text">Sign Up</span>
+                    <i class="ph ph-spinner-gap spinner"></i>
+                </button>
+            </form>
+
+            <div class="social-auth">
+                <div class="divider">
+                    <span>or continue with</span>
+                </div>
+                <div class="social-buttons">
+                    <button type="button" class="social-btn">
+                        <i class="ph ph-google-logo"></i>
+                    </button>
+                    <button type="button" class="social-btn">
+                        <i class="ph ph-github-logo"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="auth-footer">
+            <p id="toggle-to-signup" class="toggle-text">Don't have an account? <button class="text-btn">Sign up</button></p>
+            <p id="toggle-to-login" class="toggle-text hidden">Already have an account? <button class="text-btn">Log in</button></p>
+        </div>
+    </main>
+
+    <script src="auth.js"></script>
+</body>
+</html>
